@@ -1,0 +1,14 @@
+{
+  "name": "ezssr",
+  "version": "0.0.1",
+  "description": "",
+  "author": "Peter Schweitzer",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "keywords": [
+    "simplistic",
+    "server-side-rendering",
+    "SSR"
+  ]
+}
