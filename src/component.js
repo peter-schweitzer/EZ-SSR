@@ -1,5 +1,4 @@
 'use strict';
-import './types.js';
 import { WRN } from './utils.js';
 
 export class Component {

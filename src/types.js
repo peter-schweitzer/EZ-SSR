@@ -4,6 +4,11 @@
  */
 
 /**
+ * @typedef {(false|T)} FalseOr<T>
+ * @template T
+ */
+
+/**
  * @typedef {{err: string, data: null}} Err
  */
 
@@ -18,6 +23,7 @@
  */
 
 /**
- * @typedef {(false|T)} FalseOr<T>
+ * the Promise should always resolve, never reject!
+ * @typedef {Promise<ErrorOr<T>>} AsyncErrorOr<T>
  * @template T
  */

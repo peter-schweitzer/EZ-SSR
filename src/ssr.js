@@ -4,8 +4,6 @@ import { readFile, readdir } from 'node:fs/promises';
 import { Component } from './component.js';
 import { WRN, data, err, p2eo } from './utils.js';
 
-import './types.js';
-
 export class EZSSR {
   /**@type {LUT<Component>} */
   #components = {};
@@ -99,7 +97,7 @@ export class EZSSR {
   /**
    * @param {string} main relative path to the main HTML-file of the site that should be rendered
    * @param {LUT<any>} props Object with all the needed props to render the site
-   * @returns {Promise<ErrorOr<string>>}
+   * @returns {AsyncErrorOr<string>}
    */
   async render(main, props) {
     const { err: file_err, data: raw_main_string } = await p2eo(readFile(main, 'utf8'));

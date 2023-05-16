@@ -1,5 +1,4 @@
 'use strict';
-import './types.js';
 
 export const { log: LOG, table: TAB, warn: WRN, error: ERR } = console;
 
@@ -22,13 +21,12 @@ export function data(data) {
 
 /**
  * @param {Promise<T>} promise
- * @returns {Promise<ErrorOr<T>>}
+ * @returns {AsyncErrorOr<T>}
  * @template T
  */
 export async function p2eo(promise) {
   try {
-    const d = await promise;
-    return Promise.resolve(data(d));
+    return Promise.resolve(data(await promise));
   } catch ({ code: e }) {
     return Promise.resolve(err(e));
   }
