@@ -6,7 +6,7 @@
   "main": "index.js",
   "exports": {
     "require": "./index.js",
-    "import": "./wrapper.mjs",
+    "import": "./index.mjs",
     "types": "./types.d.ts"
   },
   "license": "MIT",

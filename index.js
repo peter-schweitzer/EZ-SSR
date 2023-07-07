@@ -1,1 +1,2 @@
-export { EZSSR } from './src/ssr.js';
+const { EZSSR } = require("./src/ssr.js");
+module.exports = { EZSSR };
