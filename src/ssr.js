@@ -1,10 +1,9 @@
-'use strict';
-import { readFile, readdir } from 'node:fs/promises';
+const { readFile, readdir } = require('node:fs/promises');
 
-import { Component } from './component.js';
-import { WRN, data, err, p2eo } from './utils.js';
+const { Component } = require('./component.js');
+const { WRN, data, err, p2eo } = require('@peter-schweitzer/ez-utils');
 
-export class EZSSR {
+class EZSSR {
   /**@type {LUT<Component>} */
   #components = {};
 
@@ -139,3 +138,5 @@ export class EZSSR {
     return Promise.resolve(data(rendered_page.join('')));
   }
 }
+
+module.exports = { EZSSR };

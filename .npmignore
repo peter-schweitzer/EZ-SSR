@@ -1,6 +1,8 @@
-# node
 node_modules/
 package-lock.json
 
-#vscode
 .vscode/
+.git/
+
+.gitignore
+src/validator.js

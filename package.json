@@ -1,14 +1,22 @@
 {
-  "name": "ezssr",
+  "name": "@peter-schweitzer/ezssr",
   "version": "0.0.1",
   "description": "",
   "author": "Peter Schweitzer",
   "main": "index.js",
-  "type": "module",
+  "exports": {
+    "require": "./index.js",
+    "import": "./wrapper.mjs",
+    "types": "./types.d.ts"
+  },
   "license": "MIT",
   "keywords": [
     "simplistic",
     "server-side-rendering",
     "SSR"
-  ]
+  ],
+  "reveal": true,
+  "dependencies": {
+    "@peter-schweitzer/ez-utils": "^0.0.1"
+  }
 }

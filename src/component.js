@@ -1,7 +1,6 @@
-'use strict';
-import { WRN } from './utils.js';
+const { WRN } = require('@peter-schweitzer/ez-utils');
 
-export class Component {
+class Component {
   //#region fields
   /**@type {{name: string, id: string, is_ez_for: boolean}[]} */
   #dependencies;
@@ -59,3 +58,5 @@ export class Component {
     }
   }
 }
+
+module.exports = { Component };
