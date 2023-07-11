@@ -4,6 +4,7 @@
   "description": "",
   "author": "Peter Schweitzer",
   "main": "index.js",
+  "types": "./types.d.ts",
   "exports": {
     "require": "./index.js",
     "import": "./index.mjs",
