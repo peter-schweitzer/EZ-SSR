@@ -17,6 +17,6 @@
   ],
   "reveal": true,
   "dependencies": {
-    "@peter-schweitzer/ez-utils": "^0.0.1"
+    "@peter-schweitzer/ez-utils": "^0.0.2"
   }
 }
