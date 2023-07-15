@@ -122,7 +122,8 @@ class EZSSR {
 
       if (nested_string.startsWith('<ez-for ')) {
         if (!Array.isArray(nested_props)) return Promise.resolve(err('ez-for components need an array of props to be rendered'));
-        for (const for_props of nested_props) {
+        for (const [i, for_props] of nested_props.entries()) {
+          if (!Object.hasOwn(for_props, 'i')) Object.defineProperty(for_props, 'i', { value: i });
           const { err: nested_render_err, data: rendered_component } = this.#render_component(parse_data.name, for_props);
           if (nested_render_err !== null) return Promise.resolve(err(nested_render_err));
           rendered_page.push(rendered_component);
