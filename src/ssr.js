@@ -59,7 +59,7 @@ class EZSSR {
    * @returns {ErrorOr<string>}
    */
   #render_component(name, props) {
-    if (!this.#components.hasOwnProperty(name)) return err(`component "${name}" is unknown (was not parsed on EZSSR instantiation)`);
+    if (!Object.hasOwn(this.#components, name)) return err(`component "${name}" is unknown (was not parsed on EZSSR instantiation)`);
 
     let content = this.#components[name].content;
 
@@ -117,7 +117,7 @@ class EZSSR {
       const { err: parse_error, data: parse_data } = this.#parse_component_string(nested_string);
       if (parse_error !== null) return Promise.resolve(err(`error while parsing component string\n  ${parse_error}`));
 
-      if (!props.hasOwnProperty(parse_data.id)) return Promise.resolve(err(`prop "${parse_data.id}" is missing`));
+      if (!Object.hasOwn(props, parse_data.id)) return Promise.resolve(err(`prop "${parse_data.id}" is missing`));
       const nested_props = props[parse_data.id];
 
       if (nested_string.startsWith('<ez-for ')) {

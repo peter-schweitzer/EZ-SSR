@@ -1,1 +1,1 @@
-export { EZSSR } from "./src/ssr.js";
+export { EZSSR } from './src/ssr.js';
