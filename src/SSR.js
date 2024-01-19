@@ -1,9 +1,9 @@
-const { readFile, readdir } = require('node:fs/promises');
+import { readFile, readdir } from 'node:fs/promises';
 
-const { Component } = require('./component.js');
-const { WRN, data, err, p2eo } = require('@peter-schweitzer/ez-utils');
+import { WRN, data, err, p2eo } from '@peter-schweitzer/ez-utils';
+import { Component } from './Component.js';
 
-class EZSSR {
+export class SSR {
   /**@type {LUT<Component>} */
   #components = {};
 
@@ -139,5 +139,3 @@ class EZSSR {
     return Promise.resolve(data(rendered_page.join('')));
   }
 }
-
-module.exports = { EZSSR };

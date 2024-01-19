@@ -5,19 +5,18 @@
   "author": "Peter Schweitzer",
   "main": "index.js",
   "types": "./types.d.ts",
+  "type": "module",
   "exports": {
-    "require": "./index.js",
-    "import": "./index.mjs",
+    "import": "./index.js",
     "types": "./types.d.ts"
   },
   "license": "MIT",
   "keywords": [
-    "simplistic",
     "server-side-rendering",
     "SSR"
   ],
   "reveal": true,
   "dependencies": {
-    "@peter-schweitzer/ez-utils": "^0.2.0"
+    "@peter-schweitzer/ez-utils": "^0.3.0"
   }
 }
