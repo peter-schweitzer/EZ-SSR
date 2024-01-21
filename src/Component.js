@@ -27,34 +27,37 @@ export class Component {
     this.#dependencies = [];
 
     this.#content = content;
-    for (const prop_fragments of this.#content.matchAll(/\${(\w+)( *: *(boolean|number|string|object|any))?}/g)) {
-      Object.defineProperty(this.#props, prop_fragments[1], { value: prop_fragments[3] || 'any' });
-      this.#content = this.#content.replace(prop_fragments[0], `\${${prop_fragments[1]}}`);
+
+    for (const prop_fragments of this.#content.matchAll(/\${(\w+)( ?: ?(boolean|number|string|object|any))?}/g)) {
+      const [prop_str, prop, opt_type, type] = prop_fragments;
+      this.#props[prop] = opt_type === undefined ? 'any' : type;
+      this.#content = this.#content.replace(prop_str, `\${${prop}}`);
     }
 
-    for (const sub_component_fragments of this.#content.matchAll(/<ez *((name|id)="([\w-]+)" *)((name|id)="([\w-]+)" *)\/>/g)) {
-      if (sub_component_fragments[2] === sub_component_fragments[5]) {
-        WRN(`invalid component ("${sub_component_fragments[0]}"):\n  has to have exactly one "name" and one "id" property`);
-        continue;
-      }
-      const component_descriptor = { name: '', id: '', is_ez_for: false };
-      component_descriptor[sub_component_fragments[2]] = sub_component_fragments[3];
-      component_descriptor[sub_component_fragments[5]] = sub_component_fragments[6];
-
-      this.#dependencies.push(component_descriptor);
-    }
-
-    for (const sub_component_fragments of this.#content.matchAll(/<ez-for *((name|id)="([\w-]+)" *)((name|id)="([\w-]+)" *)\/>/g)) {
-      if (sub_component_fragments[2] === sub_component_fragments[5]) {
-        WRN(`invalid component ("${sub_component_fragments[0]}"):\n  has to have exactly one "name" and one "id" property`);
+    for (const sub_component_fragments of this.#content.matchAll(/<ez-for *(name|id)="([\w-]+)" +(name|id)="([\w-]+)" *\/>/g)) {
+      /** @type {[string, "name"|"id", string, "name"|"id", string]} */
+      // @ts-ignore why the fuck is matchAll() so fucking fucky :rage:
+      const [raw_str, attr1, val1, attr2, val2] = sub_component_fragments;
+      if (attr1 === attr2) {
+        WRN(`invalid component ("${raw_str}"):\n  has to have exactly one "name" and one "id" property`);
         continue;
       }
 
-      const component_descriptor = { name: '', id: '', is_ez_for: true };
-      component_descriptor[sub_component_fragments[2]] = sub_component_fragments[3];
-      component_descriptor[sub_component_fragments[5]] = sub_component_fragments[6];
+      // @ts-ignore attr1 is "name" or "id" and attr2 is the other one -> both are set
+      this.#dependencies.push({ [attr1]: val1, [attr2]: val2, is_ez_for: true });
+    }
 
-      this.#dependencies.push(component_descriptor);
+    for (const sub_component_fragments of this.#content.matchAll(/<ez *(name|id)="([\w-]+)" +(name|id)="([\w-]+)" *\/>/g)) {
+      /** @type {[string, "name"|"id", string, "name"|"id", string]} */
+      // @ts-ignore why the fuck is matchAll() so fucking fucky :rage:
+      const [raw_str, attr1, val1, attr2, val2] = sub_component_fragments;
+      if (attr1 === attr2) {
+        WRN(`invalid component ("${raw_str}"):\n  has to have exactly one "name" and one "id" property`);
+        continue;
+      }
+
+      // @ts-ignore attr1 is "name" or "id" and attr2 is the other one -> both are set
+      this.#dependencies.push({ [attr1]: val1, [attr2]: val2, is_ez_for: true });
     }
   }
 }
