@@ -1,4 +1,5 @@
-import { data, err, validate } from '@peter-schweitzer/ez-utils';
+import { data, err } from '@peter-schweitzer/ez-utils';
+import { render_dependency } from './utils';
 
 export class Component {
   //#region fields
@@ -51,52 +52,6 @@ export class Component {
   }
 
   /**
-   * @param {SegmentItem} dep
-   * @param {LUT<any>} props
-   * @returns {ErrorOr<string>}
-   */
-  #render_dependency({ type, info }, props) {
-    if (!Object.hasOwn(props, info.id)) return err(`missing prop '${info.id}'`);
-    const sub_prop = props[info.id];
-
-    //#region render prop
-    if (type === 'prop')
-      if (!validate(props, { [info.id]: info.type })) return err(`invalid type of prop '${info.id}', should be '${info.type}'`);
-      else return data(sub_prop);
-    //#endregion
-
-    //#region sub / subs
-    const { name, id } = info;
-
-    if (Object.hasOwn(this.#components_ref, name)) return err(`unknown component '${name}'`);
-    const sub_component = this.#components_ref[name];
-
-    //#region sub
-    if (type === 'sub') {
-      const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_prop);
-      if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
-
-      return data(rendered_sub_component);
-    }
-    //#endregion
-
-    //#region subs
-    if (!Array.isArray(sub_prop)) return err(`invalid type of prop '${id}', should be an array`);
-
-    const rendered_sub_components = new Array(sub_prop.length);
-    for (let i = 0; i < sub_prop.length; i++) {
-      const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_prop[i]);
-      if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
-
-      rendered_sub_components[i] = rendered_sub_component;
-    }
-
-    return data(rendered_sub_components.join('\n'));
-    //#endregion
-    //#endregion
-  }
-
-  /**
    * @param {LUT<any>} props
    * @returns {ErrorOr<string>}
    */
@@ -110,7 +65,7 @@ export class Component {
     }
 
     for (let i = 0; i < this.#dependencies.length; i++) {
-      const { err: render_err, data: rendered_dependency } = this.#render_dependency(this.#dependencies[i], props);
+      const { err: render_err, data: rendered_dependency } = render_dependency(this.#components_ptr, this.#dependencies[i], props);
       if (render_err !== null) return err(render_err);
 
       rendered_segments[i * 2 + 1] = rendered_dependency;
