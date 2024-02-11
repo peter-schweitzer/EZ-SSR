@@ -1,7 +1,5 @@
-import { readFileSync, readdirSync } from 'node:fs';
-
 import { data, err } from '@peter-schweitzer/ez-utils';
-
+import { readFileSync, readdirSync } from 'node:fs';
 import { Component } from './Component.js';
 
 export class SSR {
@@ -23,7 +21,7 @@ export class SSR {
    * @param {LUT<any>} props
    * @returns {ErrorOr<string>}
    */
-  render_component(name, props) {
+  renderComponent(name, props) {
     if (!Object.hasOwn(this.#components, name)) return err(`component "${name}" is unknown (was not parsed on instantiation)`);
     return this.#components[name].render(props);
   }
@@ -33,7 +31,7 @@ export class SSR {
    * @param {LUT<any>} props Object with all the needed props to render the site
    * @returns {ErrorOr<string>}
    */
-  render_file(main, props) {
+  renderFile(main, props) {
     /**@type {string}*/
     let main_string;
     try {
@@ -65,13 +63,13 @@ export class SSR {
       if (nested_string.startsWith('<ez-for ')) {
         if (!Array.isArray(nested_props)) return err('ez-for components need an array of props to be rendered');
         for (const [i, for_props] of nested_props.entries()) {
-          if (!Object.hasOwn(for_props, 'i')) Object.defineProperty(for_props, 'i', { value: i });
-          const { err: nested_render_err, data: rendered_component } = this.render_component(name, for_props);
+          if (!Object.hasOwn(for_props, 'i')) for_props.i = i;
+          const { err: nested_render_err, data: rendered_component } = this.renderComponent(name, for_props);
           if (nested_render_err !== null) return err(nested_render_err);
           rendered_page.push(rendered_component);
         }
       } else {
-        const { err: nested_render_err, data: rendered_component } = this.render_component(name, nested_props);
+        const { err: nested_render_err, data: rendered_component } = this.renderComponent(name, nested_props);
         if (nested_render_err !== null) return err(nested_render_err);
         rendered_page.push(rendered_component);
       }

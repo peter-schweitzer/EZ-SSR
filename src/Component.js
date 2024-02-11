@@ -9,42 +9,40 @@ export class Component {
   #dependencies;
 
   /**@type {LUT<Component>}*/
-  #components_ref;
+  #components_ptr;
   //#endregion
 
-  /** @param {string} content */
-  constructor(components_ref, content) {
-    this.#components_ref = components_ref;
+  /**
+   * @param {LUT<Component>} components_ptr
+   * @param {string} content
+   */
+  constructor(components_ptr, content) {
+    this.#components_ptr = components_ptr;
 
     this.#strings = [];
     this.#dependencies = [];
 
     const matches = [];
-    for (const { 0: raw_str, index } of content.matchAll(
+    for (const { 0: str, index } of content.matchAll(
       /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-]+" id="[\w-]+"|id="[\w-]+" name="[\w-]+") \/>/g,
     ))
-      matches.push({ raw_str, start: index, end: index + raw_str.length });
+      matches.push({ str: str, start: index, end: index + str.length });
 
     const span = { start: 0, end: 0 };
 
-    for (const { raw_str, start, end } of matches) {
+    for (const { str: str, start, end } of matches) {
       span.start = start;
       this.#strings.push(content.slice(span.end, span.start));
       span.end = end;
 
-      if (raw_str[0] === '$') {
-        const { groups: info } = raw_str.slice(2, -1).match(/ ?(?<id>[\w-]+)(?: ?: ?(?<type>string|number|boolean|object|any))?/);
-
-        //@ts-ignore ts(2322) tsserver can't comprehend RegEx, type is 'string', 'number', 'boolean', 'object' or 'any'
-        this.#dependencies.push({ type: 'prop', info });
+      if (str[0] === '$') {
+        const { groups: info } = str.slice(2, -1).match(/ ?(?<id>[\w-]+)(?: ?: ?(?<type>string|number|boolean|object|any))?/);
+        //@ts-ignore ts(2322) tsserver can't comprehend RegEx, info.type is 'string', 'number', 'boolean', 'object' or 'any'
+        this.#dependencies.push({ type: 'prop', info: { id: info.id, type: info.type || 'any' } });
       } else {
-        const {
-          groups: { multi, attrs },
-        } = raw_str.slice(3, -3).match(/(?<multi>-for)? (?<attrs>name="[\w-]+" id="[\w-]+"|id="[\w-]+" name="[\w-]+")/);
-
         this.#dependencies.push({
-          type: multi === undefined ? 'sub' : 'subs',
-          info: { id: attrs.match(/id="(?<id>[\w-]+)"/).groups.id, name: attrs.match(/name="(?<name>[\w-]+)"/).groups.name },
+          type: str.startsWith('<ez ') ? 'sub' : 'subs',
+          info: { id: str.match(/id="([\w-]+)"/)[1], name: str.match(/name="([\w-]+)"/)[1] },
         });
       }
     }
@@ -103,7 +101,9 @@ export class Component {
    * @returns {ErrorOr<string>}
    */
   render(props) {
-    const rendered_segments = new Array(this.#strings.length + this.#dependencies.length);
+    /** @type {string[]} */
+    const rendered_segments = new Array(this.#strings.length + this.#dependencies.length + 1);
+    rendered_segments[rendered_segments.length - 1] = '\n';
 
     for (let i = 0; i < this.#strings.length; i++) {
       rendered_segments[i * 2] = this.#strings[i];
