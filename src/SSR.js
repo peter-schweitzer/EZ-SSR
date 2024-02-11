@@ -17,39 +17,42 @@ export class SSR {
   }
 
   /**
-   * @param {string} name
-   * @param {LUT<any>} props
+   * @param {string} [name=null]
+   * @param {LUT<any>} [props={}]
    * @returns {ErrorOr<string>}
    */
-  renderComponent(name, props) {
-    if (!Object.hasOwn(this.#components, name)) return err(`component "${name}" is unknown (was not parsed on instantiation)`);
-    return this.#components[name].render(props);
+  renderComponent(name = null, props = {}) {
+    if (name === null) return err('no component name given');
+    else if (!Object.hasOwn(this.#components, name)) return err(`component "${name}" is unknown (was not parsed on instantiation)`);
+    else return this.#components[name].render(props);
   }
 
   /**
-   * @param {string} main relative path to the main HTML-file of the site that should be rendered
-   * @param {LUT<any>} props Object with all the needed props to render the site
+   * @param {string} [filePath=null] relative path to the main HTML-file of the site that should be rendered
+   * @param {LUT<any>} [props={}] Object with all the needed props to render the site
    * @returns {ErrorOr<string>}
    */
-  renderFile(main, props) {
+  renderFile(filePath = null, props = {}) {
+    if (filePath === null) return err('no file path given');
+
     /**@type {string}*/
-    let main_string;
+    let file_content;
     try {
-      main_string = readFileSync(main, { encoding: 'utf8' });
+      file_content = readFileSync(filePath, { encoding: 'utf8' });
     } catch (e) {
-      return err(`error while reading main file (${typeof e === 'string' ? e : JSON.stringify(e)})`);
+      return err(`error while reading file '${filePath}' (${typeof e === 'string' ? e : JSON.stringify(e)})`);
     }
 
-    for (const prop in props) main_string = main_string.replace(new RegExp(`\\\${ ?${prop}(?: ?: ?(?:string|number|boolean|object|any))? ?}`, 'g'), props[prop]);
+    for (const prop in props) file_content = file_content.replace(new RegExp(`\\\${ ?${prop}(?: ?: ?(?:string|number|boolean|object|any))? ?}`, 'g'), props[prop]);
 
     const rendered_page = [];
     const span = { start: 0, end: 0 };
 
-    while ((span.start = main_string.indexOf('<ez', span.end)) !== -1) {
-      if (span.end < span.start - 1) rendered_page.push(main_string.slice(span.end, span.start));
+    while ((span.start = file_content.indexOf('<ez', span.end)) !== -1) {
+      if (span.end < span.start - 1) rendered_page.push(file_content.slice(span.end, span.start));
 
-      span.end = main_string.indexOf('/>', span.start) + 2;
-      const nested_string = main_string.slice(span.start, span.end);
+      span.end = file_content.indexOf('/>', span.start) + 2;
+      const nested_string = file_content.slice(span.start, span.end);
 
       const name = nested_string.match(/ name="(?<name>[\w_]+)"/).groups.name;
       if (name === undefined) return err("invalid component, missing 'name' attribute");
@@ -74,7 +77,7 @@ export class SSR {
         rendered_page.push(rendered_component);
       }
     }
-    rendered_page.push(main_string.slice(span.end));
+    rendered_page.push(file_content.slice(span.end));
 
     return data(rendered_page.join(''));
   }
