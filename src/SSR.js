@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import { data, err } from '@peter-schweitzer/ez-utils';
-import { readFileSync, readdirSync } from 'node:fs';
+
 import { Component } from './Component.js';
+import { add_components } from './utils.js';
 
 export class SSR {
   /**@type {LUT<Component>} */
@@ -11,9 +14,7 @@ export class SSR {
    * @throws
    */
   constructor(componentDirPath = './components') {
-    if (componentDirPath !== null)
-      for (const f of readdirSync(componentDirPath, 'utf8'))
-        if (f.endsWith('.html')) this.#components[f.slice(0, -5)] = new Component(this.#components, readFileSync(`${componentDirPath}/${f}`, 'utf8'));
+    if (componentDirPath !== null) add_components(this.#components, componentDirPath);
   }
 
   /**

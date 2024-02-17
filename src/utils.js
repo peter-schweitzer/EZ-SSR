@@ -1,4 +1,8 @@
+import { readFileSync, readdirSync } from 'node:fs';
+
 import { data, err, validate } from '@peter-schweitzer/ez-utils';
+
+import { Component } from './Component.js';
 
 /**
  * @param {LUT<Component>} components_ref
@@ -48,4 +52,16 @@ export function render_dependency(components_ref, { type, info }, props) {
   return data(rendered_sub_components.join('\n'));
   //#endregion
   //#endregion
+}
+
+/**
+ * @param {string} dir_path
+ * @param {LUT<Component>} component_lut
+ * @param {string} prefix
+ * @returns {void}
+ */
+export function add_components(component_lut, dir_path, prefix = '') {
+  for (const f of readdirSync(dir_path, { encoding: 'utf8', withFileTypes: true }))
+    if (f.isDirectory()) add_components(component_lut, `${dir_path}/${f.name}`, `${prefix}${f.name}/`);
+    else if (f.name.endsWith('.html')) component_lut[prefix + f.name.slice(0, -5)] = new Component(component_lut, readFileSync(`${dir_path}/${f.name}`, 'utf8'));
 }

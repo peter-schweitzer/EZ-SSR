@@ -1,5 +1,6 @@
 import { data, err } from '@peter-schweitzer/ez-utils';
-import { render_dependency } from './utils';
+
+import { render_dependency } from './utils.js';
 
 export class Component {
   //#region fields
