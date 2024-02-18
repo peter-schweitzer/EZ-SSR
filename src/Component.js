@@ -26,7 +26,7 @@ export class Component {
 
     const matches = [];
     for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-]+" id="[\w-]+"|id="[\w-]+" name="[\w-]+") \/>/g,
+      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-/]+" id="[\w-/]+"|id="[\w-/]+" name="[\w-/]+") \/>/g,
     ))
       matches.push({ str: str, start: index, end: index + str.length });
 
@@ -44,7 +44,7 @@ export class Component {
       } else {
         this.#dependencies.push({
           type: str.startsWith('<ez ') ? 'sub' : 'subs',
-          info: { id: str.match(/id="([\w-]+)"/)[1], name: str.match(/name="([\w-]+)"/)[1] },
+          info: { id: str.match(/id="([\w-/]+)"/)[1], name: str.match(/name="([\w-/]+)"/)[1] },
         });
       }
     }
