@@ -26,7 +26,7 @@ export class Component {
 
     const matches = [];
     for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-/]+" id="[\w-/]+"|id="[\w-/]+" name="[\w-/]+")(?: [\w-/]+="[\w-/]+")* \/>/g,
+      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-/]+" id="[\w-/]+"|id="[\w-/]+" name="[\w-/]+")(?: [\w-/]+="[^\\"]+")* \/>/g,
     ))
       matches.push({ str: str, start: index, end: index + str.length });
 
@@ -47,7 +47,7 @@ export class Component {
 
         for (const {
           groups: { n, v },
-        } of str.matchAll(/ (?<n>[\w-/]+)="(?<v>[\w-/]+)"/g))
+        } of str.matchAll(/ (?<n>[\w-/]+)="(?<v>[^\\"]+)"/g))
           if (n === 'name' || n === 'id') dep.info[n] = v;
           else dep.info.inline_props[n] = v;
 

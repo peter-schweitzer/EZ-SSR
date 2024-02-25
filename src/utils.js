@@ -4,6 +4,8 @@ import { data, err, validate } from '@peter-schweitzer/ez-utils';
 
 import { Component } from './Component.js';
 
+function render_prop_dependency(props, id, type) {}
+
 /**
  * @param {LUT<Component>} components_ref
  * @param {SegmentItem} dep
@@ -17,7 +19,7 @@ export function render_dependency(components_ref, { type, info }, props) {
   if (type === 'prop') {
     if (!Object.hasOwn(props, id)) return err(`missing prop '${id}'`);
     else if (!validate(props, { [id]: info.type })) return err(`invalid type of prop '${id}', should be '${info.type}'`);
-    else if (info.type === 'object' || typeof props[id] === 'object') return data(JSON.stringify(props[id]));
+    else if (typeof props[id] === 'object') return data(JSON.stringify(props[id]));
     else return data(`${props[id]}`);
   }
   //#endregion
@@ -29,6 +31,9 @@ export function render_dependency(components_ref, { type, info }, props) {
   const sub_component = components_ref[name];
 
   const sub_props = Object.hasOwn(props, id) ? props[id] : {};
+
+  for (const i_prop in inline_props)
+    for (const prop in sub_props) inline_props[i_prop] = inline_props[i_prop].replace(new RegExp(`\\\${ ?${prop} ?}`, 'g'), sub_props[prop]);
 
   //#region sub
   if (type === 'sub') {
