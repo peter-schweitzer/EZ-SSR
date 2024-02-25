@@ -26,7 +26,7 @@ export class Component {
 
     const matches = [];
     for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-/]+" id="[\w-/]+"|id="[\w-/]+" name="[\w-/]+") \/>/g,
+      /\${ ?[\w-]+(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w-/]+" id="[\w-/]+"|id="[\w-/]+" name="[\w-/]+")(?: [\w-/]+="[\w-/]+")* \/>/g,
     ))
       matches.push({ str: str, start: index, end: index + str.length });
 
@@ -38,14 +38,20 @@ export class Component {
       span.end = end;
 
       if (str[0] === '$') {
-        const { groups: info } = str.slice(2, -1).match(/ ?(?<id>[\w-]+)(?: ?: ?(?<type>string|number|boolean|object|any))?/);
+        const { groups } = str.slice(2, -1).match(/ ?(?<id>[\w-]+)(?: ?: ?(?<type>string|number|boolean|object|any))?/);
         //@ts-ignore ts(2322) tsserver can't comprehend RegEx, info.type is 'string', 'number', 'boolean', 'object' or 'any'
-        this.#dependencies.push({ type: 'prop', info: { id: info.id, type: info.type || 'any' } });
+        this.#dependencies.push({ type: 'prop', info: { id: groups.id, type: groups.type || 'any' } });
       } else {
-        this.#dependencies.push({
-          type: str.startsWith('<ez ') ? 'sub' : 'subs',
-          info: { id: str.match(/id="([\w-/]+)"/)[1], name: str.match(/name="([\w-/]+)"/)[1] },
-        });
+        /** @type {SegmentItem} */
+        const dep = { type: str[3] === '-' ? 'subs' : 'sub', info: { name: '', id: '', inline_props: {} } };
+
+        for (const {
+          groups: { n, v },
+        } of str.matchAll(/ (?<n>[\w-/]+)="(?<v>[\w-/]+)"/g))
+          if (n === 'name' || n === 'id') dep.info[n] = v;
+          else dep.info.inline_props[n] = v;
+
+        this.#dependencies.push(dep);
       }
     }
 
@@ -58,8 +64,7 @@ export class Component {
    */
   render(props) {
     /** @type {string[]} */
-    const rendered_segments = new Array(this.#strings.length + this.#dependencies.length + 1);
-    rendered_segments[rendered_segments.length - 1] = '\n';
+    const rendered_segments = new Array(this.#strings.length + this.#dependencies.length);
 
     for (let i = 0; i < this.#strings.length; i++) {
       rendered_segments[i * 2] = this.#strings[i];
