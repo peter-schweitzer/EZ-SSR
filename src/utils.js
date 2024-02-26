@@ -31,13 +31,18 @@ export function render_dependency(components_ref, { type, info }, props) {
   const sub_component = components_ref[name];
 
   const sub_props = Object.hasOwn(props, id) ? props[id] : {};
+  //FIXME: improve inline prop data structure
+  const rendered_inline_props = Object.fromEntries(Object.entries(inline_props)); // feels bad man :(
 
-  for (const i_prop in inline_props)
-    for (const prop in sub_props) inline_props[i_prop] = inline_props[i_prop].replace(new RegExp(`\\\${ ?${prop} ?}`, 'g'), sub_props[prop]);
+  for (const i_prop in rendered_inline_props) {
+    for (const prop in sub_props) {
+      rendered_inline_props[i_prop] = rendered_inline_props[i_prop].replace(new RegExp(`\\\${ ?${prop} ?}`, 'g'), sub_props[prop]);
+    }
+  }
 
   //#region sub
   if (type === 'sub') {
-    for (const prop in inline_props) if (!Object.hasOwn(sub_props, prop)) sub_props[prop] = inline_props[prop];
+    for (const prop in rendered_inline_props) if (!Object.hasOwn(sub_props, prop)) sub_props[prop] = rendered_inline_props[prop];
     const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_props);
     if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
     else return data(rendered_sub_component);
