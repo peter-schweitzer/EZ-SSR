@@ -25,22 +25,25 @@ export class Component {
 
     const matches = [];
     for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w]+[\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: [\w/-]+="(?:[^"]|\\")+")* \/>/g,
+      /\${ ?[\w][\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}| \$[\w][\w-]*|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: [\w/-]+="(?:[^"]|\\")+")* \/>/g,
     ))
       matches.push({ str: str, start: index, end: index + str.length });
 
     const span = { start: 0, end: 0 };
-
     for (const { str: str, start, end } of matches) {
       span.start = start;
       this.#strings.push(content.slice(span.end, span.start));
       span.end = end;
 
       if (str[0] === '$') {
-        const { groups } = str.slice(2, -1).match(/ ?(?<id>[\w/-]+)(?: ?: ?(?<type>string|number|boolean|object|any))?/);
-        //@ts-ignore ts(2322) tsserver can't comprehend RegEx, info.type is 'string', 'number', 'boolean', 'object' or 'any'
-        this.#dependencies.push({ type: 'prop', info: { id: groups.id, type: groups.type || 'any' } });
-      } else {
+        /** @type {{groups: {id: string, t?: PropTypeStr}}} */
+        //@ts-ignore ts(2322) tsserver can't comprehend RegEx
+        const {
+          groups: { id, t },
+        } = str.slice(2, -1).match(/ ?(?<id>[\w/-]+)(?: ?: ?(?<t>string|number|boolean|object|any))?/);
+        this.#dependencies.push({ type: 'prop', info: { id, type: t ?? 'any' } });
+      } else if (str[0] === ' ') this.#dependencies.push({ type: 'attr', info: { id: str.match(/ \$(?<id>[\w][\w/-]*)/).groups.id } });
+      else {
         /** @type {SegmentItem} */
         const dep = { type: str[3] === '-' ? 'subs' : 'sub', info: { name: '', id: '', inline_props: {} } };
 

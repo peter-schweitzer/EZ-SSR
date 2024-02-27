@@ -25,6 +25,13 @@ export function render_dependency(components_ref, { type, info }, props) {
     else return data(render_prop(props[id]));
   //#endregion
 
+  //#region render attr
+  if (type === 'attr') {
+    if (!Object.hasOwn(props, id)) return err(`missing prop '${id}'`);
+    else return data(` ${id}="${render_prop(props[id])}"`);
+  }
+  //#endregion
+
   //#region sub / subs
   const { name, inline_props } = info;
 
