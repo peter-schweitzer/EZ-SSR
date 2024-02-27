@@ -4,7 +4,10 @@ import { data, err, validate } from '@peter-schweitzer/ez-utils';
 
 import { Component } from './Component.js';
 
-function render_prop_dependency(props, id, type) {}
+function render_prop(prop) {
+  if (typeof prop === 'object') return JSON.stringify(prop);
+  else return `${prop}`;
+}
 
 /**
  * @param {LUT<Component>} components_ref
@@ -16,12 +19,10 @@ export function render_dependency(components_ref, { type, info }, props) {
   const { id } = info;
 
   //#region render prop
-  if (type === 'prop') {
+  if (type === 'prop')
     if (!Object.hasOwn(props, id)) return err(`missing prop '${id}'`);
     else if (!validate(props, { [id]: info.type })) return err(`invalid type of prop '${id}', should be '${info.type}'`);
-    else if (typeof props[id] === 'object') return data(JSON.stringify(props[id]));
-    else return data(`${props[id]}`);
-  }
+    else return data(render_prop(props[id]));
   //#endregion
 
   //#region sub / subs
@@ -31,21 +32,21 @@ export function render_dependency(components_ref, { type, info }, props) {
   const sub_component = components_ref[name];
 
   const sub_props = Object.hasOwn(props, id) ? props[id] : {};
-  //FIXME: improve inline prop data structure
-  const rendered_inline_props = Object.fromEntries(Object.entries(inline_props)); // feels bad man :(
-
-  for (const i_prop in rendered_inline_props) {
-    for (const prop in sub_props) {
-      rendered_inline_props[i_prop] = rendered_inline_props[i_prop].replace(new RegExp(`\\\${ ?${prop} ?}`, 'g'), sub_props[prop]);
-    }
-  }
+  const rendered_inline_props = {};
 
   //#region sub
   if (type === 'sub') {
-    for (const prop in rendered_inline_props) if (!Object.hasOwn(sub_props, prop)) sub_props[prop] = rendered_inline_props[prop];
-    const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_props);
-    if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
-    else return data(rendered_sub_component);
+    for (const prop in inline_props) {
+      const { err: inline_render_err, data: rendered_inline_prop } = inline_props[prop].render(sub_props);
+      if (inline_render_err !== null) return err(`error while rendering inline prop '${prop}' for component '${name}' (id: ${id})\n  > ${inline_render_err}`);
+
+      rendered_inline_props[prop] = rendered_inline_prop;
+    }
+
+    const { err: render_err, data: rendered_sub_component } = sub_component.render(Object.assign(rendered_inline_props, sub_props));
+    if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  > ${render_err}`);
+
+    return data(rendered_sub_component);
   }
   //#endregion
 
@@ -56,11 +57,17 @@ export function render_dependency(components_ref, { type, info }, props) {
   const rendered_sub_components = new Array(sub_props.length);
   for (let i = 0; i < sub_props.length; i++) {
     /** @type {LUT<any>} */
-    const sub_prop = sub_props[i];
-    sub_prop.i ??= i;
-    for (const prop in inline_props) if (!Object.hasOwn(sub_prop, prop)) sub_prop[prop] = inline_props[prop];
+    const arr_sub_props = sub_props[i];
+    if (!Object.hasOwn(arr_sub_props, 'i')) arr_sub_props.i = i;
 
-    const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_prop);
+    for (const prop in inline_props) {
+      const { err: inline_render_err, data: rendered_inline_prop } = inline_props[prop].render(arr_sub_props);
+      if (inline_render_err !== null) return err(`error while rendering inline prop '${prop}' for component '${name}' (id: ${id})\n  > ${inline_render_err}`);
+
+      rendered_inline_props[prop] = rendered_inline_prop;
+    }
+
+    const { err: render_err, data: rendered_sub_component } = sub_component.render(Object.assign(rendered_inline_props, arr_sub_props));
     if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
 
     rendered_sub_components[i] = rendered_sub_component;
