@@ -12,11 +12,15 @@ function render_prop(prop) {
 /**
  * @param {LUT<Component>} components_ref
  * @param {SegmentItem} dep
- * @param {LUT<any>} props
+ * @param {LUT<any>} ext_props
+ * @param {LUT<string>} [inline_props_lut=null]
  * @returns {ErrorOr<string>}
  */
-export function render_dependency(components_ref, { type, info }, props) {
+export function render_dependency(components_ref, { type, info }, ext_props, inline_props_lut = null) {
   const { id } = info;
+
+  const props = Object.assign({}, ext_props);
+  if (inline_props_lut !== null) Object.assign(props, inline_props_lut);
 
   //#region render prop
   if (type === 'prop')
@@ -25,11 +29,19 @@ export function render_dependency(components_ref, { type, info }, props) {
     else return data(render_prop(props[id]));
   //#endregion
 
+  //#region attr / attrs
   //#region render attr
   if (type === 'attr') {
     if (!Object.hasOwn(props, id)) return err(`missing prop '${id}'`);
     else return data(` ${id}="${render_prop(props[id])}"`);
   }
+  //#endregion
+
+  //#region render attrs
+  if (type === 'attrs') {
+    return data(Object.keys(inline_props_lut).reduce((s, p) => (s += ` ${p}="${render_prop(inline_props_lut[p])}"`), ''));
+  }
+  //#endregion
   //#endregion
 
   //#region sub / subs
@@ -39,25 +51,26 @@ export function render_dependency(components_ref, { type, info }, props) {
   const sub_component = components_ref[name];
 
   const sub_props = Object.hasOwn(props, id) ? props[id] : {};
+  /** @type {LUT<string>} */
   const rendered_inline_props = {};
 
-  //#region sub
+  //#region render sub
   if (type === 'sub') {
     for (const prop in inline_props) {
-      const { err: inline_render_err, data: rendered_inline_prop } = inline_props[prop].render(sub_props);
+      const { err: inline_render_err, data: rendered_inline_prop } = inline_props[prop].render(props);
       if (inline_render_err !== null) return err(`error while rendering inline prop '${prop}' for component '${name}' (id: ${id})\n  > ${inline_render_err}`);
 
       rendered_inline_props[prop] = rendered_inline_prop;
     }
 
-    const { err: render_err, data: rendered_sub_component } = sub_component.render(Object.assign(rendered_inline_props, sub_props));
+    const { err: render_err, data: rendered_sub_component } = sub_component.render(sub_props, rendered_inline_props);
     if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  > ${render_err}`);
 
     return data(rendered_sub_component);
   }
   //#endregion
 
-  //#region subs
+  //#region render subs
   if (!Array.isArray(sub_props)) return err(`invalid type of prop '${id}', should be an array`);
 
   /** @type {string[]} */
@@ -74,7 +87,7 @@ export function render_dependency(components_ref, { type, info }, props) {
       rendered_inline_props[prop] = rendered_inline_prop;
     }
 
-    const { err: render_err, data: rendered_sub_component } = sub_component.render(Object.assign(rendered_inline_props, arr_sub_props));
+    const { err: render_err, data: rendered_sub_component } = sub_component.render(arr_sub_props, rendered_inline_props);
     if (render_err !== null) return err(`encountered error while rendering sub component '${name}' with id '${id}'\n  ${render_err}`);
 
     rendered_sub_components[i] = rendered_sub_component;

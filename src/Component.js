@@ -5,12 +5,13 @@ import { render_dependency } from './utils.js';
 
 export class Component {
   //#region fields
+  /**@type {LUT<Component>}*/
+  #components_ptr;
+
   /**@type {string[]}*/
   #strings;
   /**@type {SegmentItem[]}*/
   #dependencies;
-  /**@type {LUT<Component>}*/
-  #components_ptr;
   //#endregion
 
   /**
@@ -25,7 +26,7 @@ export class Component {
 
     const matches = [];
     for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w][\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}| \$[\w][\w-]*|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: [\w/-]+="(?:[^"]|\\")+")* \/>/g,
+      /\${ ?[\w][\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}| \$(?:[\w][\w-]*|\* )|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: +[\w][\w/-]*="(?:[^"]|\\")+")* \/>/g,
     ))
       matches.push({ str: str, start: index, end: index + str.length });
 
@@ -35,25 +36,32 @@ export class Component {
       this.#strings.push(content.slice(span.end, span.start));
       span.end = end;
 
-      if (str[0] === '$') {
+      if (str.startsWith('${')) {
         /** @type {{groups: {id: string, t?: PropTypeStr}}} */
         //@ts-ignore ts(2322) tsserver can't comprehend RegEx
         const {
           groups: { id, t },
         } = str.slice(2, -1).match(/ ?(?<id>[\w/-]+)(?: ?: ?(?<t>string|number|boolean|object|any))?/);
         this.#dependencies.push({ type: 'prop', info: { id, type: t ?? 'any' } });
-      } else if (str[0] === ' ') this.#dependencies.push({ type: 'attr', info: { id: str.match(/ \$(?<id>[\w][\w/-]*)/).groups.id } });
+      } else if (str.startsWith(' $'))
+        if (str === ' $* ') this.#dependencies.push({ type: 'attrs', info: { id: null } });
+        else this.#dependencies.push({ type: 'attr', info: { id: str.slice(2) } });
       else {
-        /** @type {SegmentItem} */
-        const dep = { type: str[3] === '-' ? 'subs' : 'sub', info: { name: '', id: '', inline_props: {} } };
+        const name = str.match(/name="([\w/-]+)"/)[1];
+        const id = str.match(/id="([\w/-]+)"/)[1];
+
+        /** @type {LUT<InlineProp>} */
+        const inline_props = {};
 
         for (const {
           groups: { n, v },
-        } of str.matchAll(/ (?<n>[\w/-]+)="(?<v>(?:[^\\"]|\\.)+)"/g))
-          if (n === 'name' || n === 'id') dep.info[n] = v;
-          else dep.info.inline_props[n] = new InlineProp(v.replaceAll('\\"', '"'));
+        } of str.slice(14 + name.length + id.length).matchAll(/ (?<n>[\w/-]+)="(?<v>(?:[^\\"]|\\.)+)"/g))
+          inline_props[n] = new InlineProp(v.replaceAll('\\"', '"'));
 
-        this.#dependencies.push(dep);
+        this.#dependencies.push({
+          type: str[3] === '-' ? 'subs' : 'sub',
+          info: { name, id, inline_props },
+        });
       }
     }
 
@@ -62,9 +70,10 @@ export class Component {
 
   /**
    * @param {LUT<any>} props
+   * @param {LUT<string>} rendered_inline_props_lut
    * @returns {ErrorOr<string>}
    */
-  render(props) {
+  render(props, rendered_inline_props_lut = null) {
     /** @type {string[]} */
     const rendered_segments = new Array(this.#strings.length + this.#dependencies.length);
 
@@ -73,7 +82,7 @@ export class Component {
     }
 
     for (let i = 0; i < this.#dependencies.length; i++) {
-      const { err: render_err, data: rendered_dependency } = render_dependency(this.#components_ptr, this.#dependencies[i], props);
+      const { err: render_err, data: rendered_dependency } = render_dependency(this.#components_ptr, this.#dependencies[i], props, rendered_inline_props_lut);
       if (render_err !== null) return err(render_err);
 
       rendered_segments[i * 2 + 1] = rendered_dependency;
