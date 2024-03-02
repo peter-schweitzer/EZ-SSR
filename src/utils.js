@@ -39,6 +39,7 @@ export function render_dependency(components_ref, { type, info }, ext_props, inl
 
   //#region render attrs
   if (type === 'attrs') {
+    if (inline_props_lut === null) return data('');
     return data(Object.keys(inline_props_lut).reduce((s, p) => (s += ` ${p}="${render_prop(inline_props_lut[p])}"`), ''));
   }
   //#endregion
