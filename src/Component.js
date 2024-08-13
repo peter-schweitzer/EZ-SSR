@@ -24,17 +24,13 @@ export class Component {
     this.#strings = [];
     this.#dependencies = [];
 
-    const matches = [];
-    for (const { 0: str, index } of content.matchAll(
-      /\${ ?[\w][\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}| \$(?:[\w][\w-]*|\* )|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: +[\w][\w/-]*="(?:[^"]|\\")+")* \/>/g,
-    ))
-      matches.push({ str: str, start: index, end: index + str.length });
-
     const span = { start: 0, end: 0 };
-    for (const { str: str, start, end } of matches) {
+    for (const { 0: str, index: start } of content.matchAll(
+      /\${ ?[\w][\w-]*(?: ?: ?(?:string|number|boolean|object|any))? ?}| \$(?:[\w][\w-]+|\*)|<ez(?:-for)? (?:name="[\w/-]+" id="[\w/-]+"|id="[\w/-]+" name="[\w/-]+")(?: +[\w][\w/-]*="(?:[^"]|\\")+")* \/>/g,
+    )) {
       span.start = start;
       this.#strings.push(content.slice(span.end, span.start));
-      span.end = end;
+      span.end = start + str.length;
 
       if (str.startsWith('${')) {
         /** @type {{groups: {id: string, t?: PropTypeStr}}} */
@@ -44,7 +40,7 @@ export class Component {
         } = str.slice(2, -1).match(/ ?(?<id>[\w/-]+)(?: ?: ?(?<t>string|number|boolean|object|any))?/);
         this.#dependencies.push({ type: 'prop', info: { id, type: t ?? 'any' } });
       } else if (str.startsWith(' $'))
-        if (str === ' $* ') this.#dependencies.push({ type: 'attrs', info: { id: null } });
+        if (str === ' $*') this.#dependencies.push({ type: 'attrs', info: { id: null } });
         else this.#dependencies.push({ type: 'attr', info: { id: str.slice(2) } });
       else {
         const name = str.match(/name="([\w/-]+)"/)[1];

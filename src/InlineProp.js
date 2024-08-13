@@ -6,9 +6,7 @@ export class InlineProp {
   /** @type{string[]} */
   #prop;
 
-  /**
-   * @param {string} str
-   */
+  /** @param {string} str */
   constructor(str) {
     this.#str = [];
     this.#prop = [];

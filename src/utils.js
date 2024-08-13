@@ -102,8 +102,7 @@ export function render_dependency(components_ref, { type, info }, ext_props, inl
 /**
  * @param {string} dir_path
  * @param {LUT<Component>} component_lut
- * @param {string} prefix
- * @returns {void}
+ * @param {string} [prefix='']
  */
 export function add_components(component_lut, dir_path, prefix = '') {
   for (const f of readdirSync(dir_path, { encoding: 'utf8', withFileTypes: true }))

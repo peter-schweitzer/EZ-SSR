@@ -9,10 +9,7 @@ export class SSR {
   /**@type {LUT<Component>} */
   #components = {};
 
-  /**
-   * @param {string?} [componentDirPath="./components"] relative path to the directory containing the component HTML-files (won't parse components when set to null)
-   * @throws
-   */
+  /** @param {string?} [componentDirPath="./components"] relative path to the directory containing the component HTML-files (won't parse components when set to null) */
   constructor(componentDirPath = './components') {
     if (componentDirPath !== null) add_components(this.#components, componentDirPath);
   }
