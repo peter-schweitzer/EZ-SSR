@@ -48,118 +48,6 @@ export const COMPONENT_STATES = {
 };
 //#endregion
 
-class TokenizationHelper {
-  /** @type {string} str */
-  #str;
-  /** @type {LexerToken[]} */
-  #tokens = [];
-
-  /** @type {number} str */
-  #idx = 0;
-  /** @type {number} str */
-  #peek_offset = 0;
-  /** @type {number} str */
-  #last_flush_idx = 0;
-
-  constructor() {}
-
-  /** @param {string} str */
-  set str(str) {
-    this.#str = str;
-    this.#tokens = [];
-    this.#idx = 0;
-    this.#peek_offset = 0;
-    this.#last_flush_idx = 0;
-  }
-
-  get chars_left() {
-    return this.#str.length - this.#idx;
-  }
-
-  /** @param {number} [n=1] */
-  take(n = 1) {
-    this.#peek_offset = 0;
-    this.#idx += n;
-  }
-
-  take_all() {
-    this.#idx += this.#peek_offset;
-    this.#peek_offset = 0;
-  }
-
-  /** @param {number} [n=1] */
-  peek(n = 1) {
-    if (n === 1) return this.#str[this.#idx + this.#peek_offset++];
-    else return this.#str.slice(this.#idx + this.#peek_offset, this.#idx + (this.#peek_offset += n));
-  }
-
-  flush() {
-    const slice = this.#str.slice(this.#last_flush_idx, this.#idx);
-    this.#peek_offset = 0;
-    this.#last_flush_idx = this.#idx;
-    return slice;
-  }
-
-  /** @param {number} n */
-  skip(n = 1) {
-    this.#peek_offset = 0;
-    this.#idx = this.#last_flush_idx += n;
-  }
-
-  /**
-   * @param {TokenType} type
-   * @param {any} data
-   */
-  emit_token(type, data) {
-    switch (type) {
-      case TOKEN_TYPES.LITERAL:
-        if (!!data) this.#tokens.push({ type, data });
-        break;
-      case TOKEN_TYPES.ATTR:
-        this.#tokens.push({ type, data });
-        break;
-      case TOKEN_TYPES.ATTRS:
-        this.#tokens.push({ type, data });
-        break;
-      case TOKEN_TYPES.PROP:
-        data.type ??= 'any';
-        this.#tokens.push({ type, data });
-        break;
-      case TOKEN_TYPES.SUB:
-        this.#tokens.push({ type, data });
-        break;
-      case TOKEN_TYPES.SUBS:
-        this.#tokens.push({ type, data });
-        break;
-      default:
-        ERR(`unknown token type '${type}'`);
-        break;
-    }
-  }
-
-  get_tokens() {
-    return this.#tokens;
-  }
-}
-
-class Buff {
-  /** @type {string[]} */
-  #buff = [];
-
-  constructor() {}
-
-  /** @param {String} str */
-  add(str) {
-    this.#buff.push(str);
-  }
-
-  flush() {
-    const buff_str = this.#buff.join('');
-    this.#buff = [];
-    return buff_str;
-  }
-}
-
 class InlineArgsBuffer {
   /** @type {InlineArgs[]} */
   #args = [];
@@ -211,15 +99,98 @@ class InlineArgsBuffer {
 }
 
 export class Lexer {
-  #th = new TokenizationHelper();
-  #buff = new Buff();
+  /** @type {string} str */
+  #str;
+
+  /** @type {string[]} */
+  #buff = [];
   #args_buff = new InlineArgsBuffer();
+
+  /** @type {LexerToken[]} */
+  #tokens = [];
+  /** @type {number} str */
+  #idx = 0;
+  /** @type {number} str */
+  #peek_offset = 0;
+  /** @type {number} str */
+  #last_flush_idx = 0;
 
   constructor() {}
 
+  /** @param {number} [n=1] */
+  #take(n = 1) {
+    this.#peek_offset = 0;
+    this.#idx += n;
+  }
+
+  #take_all() {
+    this.#idx += this.#peek_offset;
+    this.#peek_offset = 0;
+  }
+
+  /** @param {number} [n=1] */
+  #peek(n = 1) {
+    if (n === 1) return this.#str[this.#idx + this.#peek_offset++];
+    else return this.#str.slice(this.#idx + this.#peek_offset, this.#idx + (this.#peek_offset += n));
+  }
+
+  #empty() {
+    const slice = this.#str.slice(this.#last_flush_idx, this.#idx);
+    this.#peek_offset = 0;
+    this.#last_flush_idx = this.#idx;
+    return slice;
+  }
+
+  /** @param {number} n */
+  #skip(n = 1) {
+    this.#peek_offset = 0;
+    this.#idx = this.#last_flush_idx += n;
+  }
+
+  /**
+   * @param {TokenType} type
+   * @param {any} data
+   */
+  #emit_token(type, data) {
+    switch (type) {
+      case TOKEN_TYPES.LITERAL:
+        if (!!data) this.#tokens.push({ type, data });
+        break;
+      case TOKEN_TYPES.ATTR:
+        this.#tokens.push({ type, data });
+        break;
+      case TOKEN_TYPES.ATTRS:
+        this.#tokens.push({ type, data });
+        break;
+      case TOKEN_TYPES.PROP:
+        data.type ??= 'any';
+        this.#tokens.push({ type, data });
+        break;
+      case TOKEN_TYPES.SUB:
+        this.#tokens.push({ type, data });
+        break;
+      case TOKEN_TYPES.SUBS:
+        this.#tokens.push({ type, data });
+        break;
+      default:
+        ERR(`unknown token type '${type}'`);
+        break;
+    }
+  }
+
+  #flush() {
+    const buff_str = this.#buff.join('');
+    this.#buff = [];
+    return buff_str;
+  }
+
   /** @param {string} [str=''] */
   lex(str = '') {
-    this.#th.str = str;
+    this.#str = str;
+    this.#tokens = [];
+    this.#idx = 0;
+    this.#peek_offset = 0;
+    this.#last_flush_idx = 0;
 
     let state = STATES.PLAIN;
 
@@ -231,19 +202,19 @@ export class Lexer {
     let component_name = null;
     let component_id = null;
 
-    while (this.#th.chars_left > 0) {
+    while (this.#str.length - this.#idx > 0) {
       switch (state) {
         case STATES.PLAIN:
-          switch (this.#th.peek()) {
+          switch (this.#peek()) {
             case '\\':
-              if (this.#th.peek() === '$' && this.#th.peek() === '{') {
-                this.#buff.add(this.#th.flush());
-                this.#buff.add('${');
-                this.#th.skip(3);
-              } else this.#th.take();
+              if (this.#peek() === '$' && this.#peek() === '{') {
+                this.#buff.push(this.#empty());
+                this.#buff.push('${');
+                this.#skip(3);
+              } else this.#take();
               break;
             case '$':
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '{':
                   state = STATES.PROP;
 
@@ -251,16 +222,16 @@ export class Lexer {
                   inline_name = null;
                   inline_type = null;
 
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-                  this.#th.skip(2);
-                  this.#buff.add('${');
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                  this.#skip(2);
+                  this.#buff.push('${');
                   break;
                 case '*':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-                  this.#th.skip(2);
-                  this.#th.emit_token(TOKEN_TYPES.ATTRS, '$*');
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                  this.#skip(2);
+                  this.#emit_token(TOKEN_TYPES.ATTRS, '$*');
                   break;
                 case '"':
                 case '$':
@@ -272,20 +243,20 @@ export class Lexer {
                 case '\\':
                 case '&':
                 case '|':
-                  this.#th.take();
+                  this.#take();
                   break;
                 default:
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-                  this.#th.skip();
-                  this.#buff.add('$');
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                  this.#skip();
+                  this.#buff.push('$');
                   state = STATES.ATTR;
                   break;
               }
               break;
             case '<':
-              if (this.#th.peek() === 'e' && this.#th.peek() === 'z') {
-                switch (this.#th.peek()) {
+              if (this.#peek() === 'e' && this.#peek() === 'z') {
+                switch (this.#peek()) {
                   case ' ':
                   case '\t':
                   case '\r':
@@ -295,37 +266,37 @@ export class Lexer {
                     component_name = null;
                     component_id = null;
 
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-                    this.#th.take(4);
-                    this.#buff.add(this.#th.flush());
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                    this.#take(4);
+                    this.#buff.push(this.#empty());
                     break;
                   case '-':
-                    if (this.#th.peek() === 'f' && this.#th.peek() === 'o' && this.#th.peek() === 'r') {
+                    if (this.#peek() === 'f' && this.#peek() === 'o' && this.#peek() === 'r') {
                       state = STATES.SUB_S;
                       component_state = COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE;
                       component_name = null;
                       component_id = null;
 
-                      this.#buff.add(this.#th.flush());
-                      this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-                      this.#th.take(7);
-                      this.#buff.add(this.#th.flush());
-                    } else this.#th.take_all();
+                      this.#buff.push(this.#empty());
+                      this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                      this.#take(7);
+                      this.#buff.push(this.#empty());
+                    } else this.#take_all();
                     break;
                   default:
-                    this.#th.take_all();
+                    this.#take_all();
                     break;
                 }
-              } else this.#th.take_all();
+              } else this.#take_all();
               break;
             default:
-              this.#th.take();
+              this.#take();
               break;
           }
           break;
         case STATES.ATTR:
-          switch (this.#th.peek()) {
+          switch (this.#peek()) {
             case '"':
             case '*':
             case '$':
@@ -339,83 +310,84 @@ export class Lexer {
             case '&':
             case '|':
               state = STATES.PLAIN;
-              this.#buff.add(this.#th.flush());
-              this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+              this.#buff.push(this.#empty());
+              this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
               break;
             case ' ':
             case '\r':
             case '\n':
             case '\t':
               state = STATES.PLAIN;
-              this.#th.emit_token(TOKEN_TYPES.ATTR, this.#th.flush());
-              this.#buff.flush();
-              this.#th.take();
+              this.#emit_token(TOKEN_TYPES.ATTR, this.#empty());
+              this.#flush();
+              this.#take();
             default:
-              this.#th.take();
+              this.#take();
+              break;
           }
           break;
         case STATES.PROP:
           switch (prop_state) {
             case PROP_STATES.PRE_NAME_WHITESPACE:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 default:
                   prop_state = PROP_STATES.NAME;
-                  this.#buff.add(this.#th.flush());
+                  this.#buff.push(this.#empty());
                   break;
               }
               break;
             case PROP_STATES.NAME:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  inline_name = this.#th.flush();
+                  inline_name = this.#empty();
                   if (inline_name.length === 0) {
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                     break;
                   }
 
                   prop_state = PROP_STATES.COLON_OR_END;
-                  this.#buff.add(inline_name);
+                  this.#buff.push(inline_name);
                   break;
                 case ':':
-                  inline_name = this.#th.flush();
+                  inline_name = this.#empty();
                   if (inline_name.length === 0) {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                     break;
                   }
 
                   prop_state = PROP_STATES.PRE_TYPE_WHITESPACE;
-                  this.#buff.add(inline_name);
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
+                  this.#buff.push(inline_name);
+                  this.#take();
+                  this.#buff.push(this.#empty());
                   break;
                 case '}':
-                  inline_name = this.#th.flush();
+                  inline_name = this.#empty();
                   if (inline_name.length === 0) {
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                     break;
                   }
 
-                  this.#buff.flush();
-                  this.#th.skip();
-                  this.#th.emit_token(TOKEN_TYPES.PROP, { name: inline_name });
+                  this.#flush();
+                  this.#skip();
+                  this.#emit_token(TOKEN_TYPES.PROP, { name: inline_name });
                   state = STATES.PLAIN;
                   break;
                 case '$':
@@ -424,49 +396,49 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#take();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case PROP_STATES.COLON_OR_END:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 case ':':
-                  this.#th.take();
+                  this.#take();
                   prop_state = PROP_STATES.PRE_TYPE_WHITESPACE;
                   break;
                 case '}':
-                  this.#th.take();
-                  this.#th.flush();
-                  this.#th.emit_token(TOKEN_TYPES.PROP, { name: inline_name });
+                  this.#take();
+                  this.#empty();
+                  this.#emit_token(TOKEN_TYPES.PROP, { name: inline_name });
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#take();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
               }
               break;
             case PROP_STATES.PRE_TYPE_WHITESPACE:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 case '$':
                 case '{':
@@ -476,111 +448,111 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#take();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 default:
                   prop_state = PROP_STATES.TYPE;
-                  this.#buff.add(this.#th.flush());
+                  this.#buff.push(this.#empty());
                   break;
               }
               break;
             case PROP_STATES.TYPE:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 // string
                 case 's':
-                  if (this.#th.peek() === 't' && this.#th.peek() === 'r' && this.#th.peek() === 'i' && this.#th.peek() === 'n' && this.#th.peek() === 'g') {
+                  if (this.#peek() === 't' && this.#peek() === 'r' && this.#peek() === 'i' && this.#peek() === 'n' && this.#peek() === 'g') {
                     inline_type = PROP_TYPES.STRING;
                     prop_state = PROP_STATES.END;
-                    this.#th.skip(6);
+                    this.#skip(6);
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 // number
                 case 'n':
-                  if (this.#th.peek() === 'u' && this.#th.peek() === 'm' && this.#th.peek() === 'b' && this.#th.peek() === 'e' && this.#th.peek() === 'r') {
+                  if (this.#peek() === 'u' && this.#peek() === 'm' && this.#peek() === 'b' && this.#peek() === 'e' && this.#peek() === 'r') {
                     inline_type = PROP_TYPES.NUMBER;
                     prop_state = PROP_STATES.END;
-                    this.#th.skip(6);
+                    this.#skip(6);
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 // boolean
                 case 'b':
-                  if (this.#th.peek() === 'o' && this.#th.peek() === 'o' && this.#th.peek() === 'l' && this.#th.peek() === 'e' && this.#th.peek() === 'a' && this.#th.peek() === 'n') {
+                  if (this.#peek() === 'o' && this.#peek() === 'o' && this.#peek() === 'l' && this.#peek() === 'e' && this.#peek() === 'a' && this.#peek() === 'n') {
                     inline_type = PROP_TYPES.BOOLEAN;
                     prop_state = PROP_STATES.END;
-                    this.#th.skip(7);
+                    this.#skip(7);
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 // object
                 case 'o':
-                  if (this.#th.peek() === 'b' && this.#th.peek() === 'j' && this.#th.peek() === 'e' && this.#th.peek() === 'c' && this.#th.peek() === 't') {
+                  if (this.#peek() === 'b' && this.#peek() === 'j' && this.#peek() === 'e' && this.#peek() === 'c' && this.#peek() === 't') {
                     inline_type = PROP_TYPES.OBJECT;
                     prop_state = PROP_STATES.END;
-                    this.#th.skip(6);
+                    this.#skip(6);
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 // any
                 case 'a':
-                  if (this.#th.peek() === 'n' && this.#th.peek() === 'y') {
+                  if (this.#peek() === 'n' && this.#peek() === 'y') {
                     inline_type = PROP_TYPES.ANY;
                     prop_state = PROP_STATES.END;
-                    this.#th.skip(3);
+                    this.#skip(3);
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 // invalid char
                 default:
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.PROP, { name: this.#buff.flush() });
+                  this.#take();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.PROP, { name: this.#flush() });
                   state = STATES.PLAIN;
                   break;
               }
               break;
             case PROP_STATES.END:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 case '}':
-                  this.#buff.flush();
-                  this.#th.skip();
-                  this.#th.emit_token(TOKEN_TYPES.PROP, { name: inline_name, type: inline_type });
+                  this.#flush();
+                  this.#skip();
+                  this.#emit_token(TOKEN_TYPES.PROP, { name: inline_name, type: inline_type });
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#th.take();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#take();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
               }
@@ -595,70 +567,70 @@ export class Lexer {
         case STATES.SUBS:
           switch (component_state) {
             case COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 default:
                   component_state = COMPONENT_STATES.NAME_OR_ID;
-                  this.#buff.add(this.#th.flush());
+                  this.#buff.push(this.#empty());
                   break;
               }
               break;
             case COMPONENT_STATES.NAME_OR_ID:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case 'n':
-                  if (this.#th.peek() === 'a' && this.#th.peek() === 'm' && this.#th.peek() === 'e' && this.#th.peek() === '=' && this.#th.peek() === '"') {
+                  if (this.#peek() === 'a' && this.#peek() === 'm' && this.#peek() === 'e' && this.#peek() === '=' && this.#peek() === '"') {
                     component_state = COMPONENT_STATES.NAME;
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
                   } else {
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 case 'i':
-                  if (this.#th.peek() === 'd' && this.#th.peek() === '=' && this.#th.peek() === '"') {
+                  if (this.#peek() === 'd' && this.#peek() === '=' && this.#peek() === '"') {
                     component_state = COMPONENT_STATES.ID;
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
                   } else {
-                    this.#th.take_all();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take_all();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 default:
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
               }
               break;
             case COMPONENT_STATES.NAME:
               if (component_name !== null) {
-                this.#buff.add(this.#th.flush());
-                this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                this.#buff.push(this.#empty());
+                this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                 state = STATES.PLAIN;
                 break;
               }
 
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '"':
                   component_state = component_id === null ? COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE : COMPONENT_STATES.END_OR_INLINE_ARG;
-                  component_name = this.#th.flush();
-                  this.#buff.add(component_name);
-                  this.#th.skip();
-                  this.#buff.add('"');
+                  component_name = this.#empty();
+                  this.#buff.push(component_name);
+                  this.#skip();
+                  this.#buff.push('"');
 
                   if (component_name.length === 0) {
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
@@ -673,34 +645,34 @@ export class Lexer {
                 case '<':
                 case '>':
                 case '&':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 case '/': // allow slash in name for components in subdir for components dir
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case COMPONENT_STATES.ID:
               if (component_id !== null) {
-                this.#buff.add(this.#th.flush());
-                this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                this.#buff.push(this.#empty());
+                this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                 state = STATES.PLAIN;
                 break;
               }
 
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '"':
                   component_state = component_name === null ? COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE : COMPONENT_STATES.END_OR_INLINE_ARG;
-                  component_id = this.#th.flush();
-                  this.#buff.add(component_id);
-                  this.#th.skip();
-                  this.#buff.add('"');
+                  component_id = this.#empty();
+                  this.#buff.push(component_id);
+                  this.#skip();
+                  this.#buff.push('"');
 
                   if (component_id.length === 0) {
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
@@ -716,41 +688,41 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case COMPONENT_STATES.END_OR_INLINE_ARG:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '/': // end
-                  if (this.#th.peek() === '>') {
-                    this.#th.take_all();
-                    this.#th.flush();
-                    this.#buff.flush();
-                    this.#th.emit_token(state == STATES.SUB ? TOKEN_TYPES.SUB : TOKEN_TYPES.SUBS, { name: component_name, id: component_id, args: this.#args_buff.flush() });
+                  if (this.#peek() === '>') {
+                    this.#take_all();
+                    this.#empty();
+                    this.#flush();
+                    this.#emit_token(state == STATES.SUB ? TOKEN_TYPES.SUB : TOKEN_TYPES.SUBS, { name: component_name, id: component_id, args: this.#args_buff.flush() });
                     state = STATES.PLAIN;
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   }
                   break;
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  this.#th.take();
+                  this.#take();
                   break;
                 case '$':
-                  if (this.#th.peek() === '*') {
+                  if (this.#peek() === '*') {
                     this.#args_buff.new_wildcard();
-                    this.#th.take(2);
-                    this.#buff.add(this.#th.flush());
+                    this.#take(2);
+                    this.#buff.push(this.#empty());
                     break;
                   } else component_state = COMPONENT_STATES.INLINE_ARG_RELAY;
                   break;
@@ -761,29 +733,29 @@ export class Lexer {
                 case '<':
                 case '>':
                 case '&':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#buff.add(this.#th.flush());
+                  this.#buff.push(this.#empty());
                   component_state = COMPONENT_STATES.INLINE_ARG_KEY;
                   break;
               }
               break;
             case COMPONENT_STATES.INLINE_ARG_RELAY:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
-                  const id = this.#th.flush();
+                  const id = this.#empty();
                   if (id.length === 0) {
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                     break;
                   }
-                  this.#buff.add(id);
+                  this.#buff.push(id);
 
                   this.#args_buff.new(id);
                   this.#args_buff.add_prop(id);
@@ -799,17 +771,17 @@ export class Lexer {
                 case '>':
                 case '/':
                 case '&':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case COMPONENT_STATES.INLINE_ARG_KEY:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case ' ':
                 case '\t':
                 case '\r':
@@ -823,97 +795,97 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 case '=':
-                  if (this.#th.peek() === '"') {
+                  if (this.#peek() === '"') {
                     component_state = COMPONENT_STATES.INLINE_ARG_VAL;
-                    const key = this.#th.flush();
+                    const key = this.#empty();
                     this.#args_buff.new(key);
-                    this.#buff.add(key);
-                    this.#th.skip(2);
-                    this.#buff.add('="');
+                    this.#buff.push(key);
+                    this.#skip(2);
+                    this.#buff.push('="');
 
                     if (key.length === 0) {
-                      this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                      this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                       state = STATES.PLAIN;
                     }
                   } else {
-                    this.#th.take();
-                    this.#buff.add(this.#th.flush());
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case COMPONENT_STATES.INLINE_ARG_VAL:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '"':
                   component_state = COMPONENT_STATES.END_OR_INLINE_ARG;
-                  const val = this.#th.flush();
+                  const val = this.#empty();
                   this.#args_buff.add_str(val);
-                  this.#buff.add(val);
-                  this.#th.skip();
-                  this.#buff.add('"');
+                  this.#buff.push(val);
+                  this.#skip();
+                  this.#buff.push('"');
 
                   if (!this.#args_buff.build()) {
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 case '\\':
-                  if (this.#th.peek() === '$') {
-                    const val = this.#th.flush();
+                  if (this.#peek() === '$') {
+                    const val = this.#empty();
                     this.#args_buff.add_str(val);
-                    this.#buff.add(val);
-                    this.#th.skip();
-                    this.#buff.add('\\');
+                    this.#buff.push(val);
+                    this.#skip();
+                    this.#buff.push('\\');
                   }
-                  this.#th.take();
+                  this.#take();
                   break;
                 case '$':
-                  if (this.#th.peek() === '{') {
+                  if (this.#peek() === '{') {
                     component_state = COMPONENT_STATES.INLINE_ARG_VAL_PROP;
-                    const val = this.#th.flush();
+                    const val = this.#empty();
                     this.#args_buff.add_str(val);
-                    this.#buff.add(val);
-                    this.#th.skip(2);
-                    this.#buff.add('${');
-                  } else this.#th.take();
+                    this.#buff.push(val);
+                    this.#skip(2);
+                    this.#buff.push('${');
+                  } else this.#take();
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
             case COMPONENT_STATES.INLINE_ARG_VAL_PROP:
-              switch (this.#th.peek()) {
+              switch (this.#peek()) {
                 case '"':
-                  this.#th.take_all();
-                  this.#buff.add(this.#th.flush());
-                  this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                  this.#take_all();
+                  this.#buff.push(this.#empty());
+                  this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   state = STATES.PLAIN;
                   break;
                 case '}':
                   component_state = COMPONENT_STATES.INLINE_ARG_VAL;
-                  const prop = this.#th.flush();
+                  const prop = this.#empty();
                   this.#args_buff.add_prop(prop);
-                  this.#buff.add(prop);
-                  this.#th.skip();
-                  this.#buff.add('}');
+                  this.#buff.push(prop);
+                  this.#skip();
+                  this.#buff.push('}');
                   if (prop.length === 0) {
-                    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
                   }
                   break;
                 default:
-                  this.#th.take();
+                  this.#take();
                   break;
               }
               break;
@@ -930,9 +902,9 @@ export class Lexer {
       }
     }
 
-    this.#th.take_all();
-    this.#buff.add(this.#th.flush());
-    this.#th.emit_token(TOKEN_TYPES.LITERAL, this.#buff.flush());
-    return this.#th.get_tokens();
+    this.#take_all();
+    this.#buff.push(this.#empty());
+    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+    return this.#tokens;
   }
 }
