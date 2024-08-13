@@ -3,8 +3,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { data, err, validate } from '@peter-schweitzer/ez-utils';
 
 import { Component } from './Component.js';
+import LexedComponent from './LexedComponent.js';
+import { Lexer } from './lexer.js';
 
-function render_prop(prop) {
+export function render_prop(prop) {
   if (typeof prop === 'object') return JSON.stringify(prop);
   else return `${prop}`;
 }
@@ -51,6 +53,7 @@ export function render_dependency(components_ref, { type, info }, ext_props, inl
   if (!Object.hasOwn(components_ref, name)) return err(`unknown component '${name}'`);
   const sub_component = components_ref[name];
 
+  /** @type {LUT<any>} */
   const sub_props = Object.hasOwn(props, id) ? props[id] : {};
   /** @type {LUT<string>} */
   const rendered_inline_props = {};
@@ -108,4 +111,16 @@ export function add_components(component_lut, dir_path, prefix = '') {
   for (const f of readdirSync(dir_path, { encoding: 'utf8', withFileTypes: true }))
     if (f.isDirectory()) add_components(component_lut, `${dir_path}/${f.name}`, `${prefix}${f.name}/`);
     else if (f.name.endsWith('.html')) component_lut[prefix + f.name.slice(0, -5)] = new Component(component_lut, readFileSync(`${dir_path}/${f.name}`, 'utf8'));
+}
+
+/**
+ * @param {string} dir_path
+ * @param {LUT<LexedComponent>} component_lut
+ * @param {string} [prefix='']
+ */
+export function add_lexed_components(component_lut, dir_path, prefix = '') {
+  const lexer = new Lexer();
+  for (const f of readdirSync(dir_path, { encoding: 'utf8', withFileTypes: true }))
+    if (f.isDirectory()) add_lexed_components(component_lut, `${dir_path}/${f.name}`, `${prefix}${f.name}/`);
+    else if (f.name.endsWith('.html')) component_lut[prefix + f.name.slice(0, -5)] = new LexedComponent(component_lut, lexer, readFileSync(`${dir_path}/${f.name}`, 'utf8'));
 }

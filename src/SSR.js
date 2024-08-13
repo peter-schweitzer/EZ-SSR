@@ -1,15 +1,21 @@
 import { err } from '@peter-schweitzer/ez-utils';
 
 import { Component } from './Component.js';
-import { add_components } from './utils.js';
+import LexedComponent from './LexedComponent.js';
+import { add_components, add_lexed_components } from './utils.js';
 
 export class SSR {
-  /**@type {LUT<Component>} */
+  /**@type {LUT<Component>|LUT<LexedComponent>} */
   #components = {};
 
   /** @param {string?} [componentDirPath="./components"] relative path to the directory containing the component HTML-files (won't parse components when set to null) */
-  constructor(componentDirPath = './components') {
-    if (componentDirPath !== null) add_components(this.#components, componentDirPath);
+  constructor(componentDirPath = './components', use_lexer = false) {
+    if (componentDirPath !== null)
+      if (use_lexer)
+        // @ts-ignore ts(2345)
+        add_lexed_components(this.#components, componentDirPath);
+      // @ts-ignore ts(2345)
+      else add_components(this.#components, componentDirPath);
   }
 
   /**
