@@ -725,7 +725,11 @@ export class Lexer {
                     this.#take(2);
                     this.#buff.push(this.#empty());
                     break;
-                  } else component_state = COMPONENT_STATES.INLINE_ARG_RELAY;
+                  } else {
+                    this.#take();
+                    this.#buff.push(this.#empty());
+                    component_state = COMPONENT_STATES.INLINE_ARG_RELAY;
+                  }
                   break;
                 case '"':
                 case '{':
