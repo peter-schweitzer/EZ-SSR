@@ -273,7 +273,7 @@ export class Lexer {
                     break;
                   case '-':
                     if (this.#peek(4) === 'for ') {
-                      state = STATES.SUB_S;
+                      state = STATES.SUBS;
                       component_state = COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE;
                       component_name = null;
                       component_id = null;
