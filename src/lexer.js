@@ -255,7 +255,7 @@ export class Lexer {
               }
               break;
             case '<':
-              if (this.#peek() === 'e' && this.#peek() === 'z') {
+              if (this.#peek(2) === 'ez') {
                 switch (this.#peek()) {
                   case ' ':
                   case '\t':
@@ -272,7 +272,7 @@ export class Lexer {
                     this.#buff.push(this.#empty());
                     break;
                   case '-':
-                    if (this.#peek() === 'f' && this.#peek() === 'o' && this.#peek() === 'r') {
+                    if (this.#peek(4) === 'for ') {
                       state = STATES.SUB_S;
                       component_state = COMPONENT_STATES.PRE_NAME_OR_ID_WHITESPACE;
                       component_name = null;
@@ -280,7 +280,7 @@ export class Lexer {
 
                       this.#buff.push(this.#empty());
                       this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                      this.#take(7);
+                      this.#take(8);
                       this.#buff.push(this.#empty());
                     } else this.#take_all();
                     break;
@@ -583,41 +583,41 @@ export class Lexer {
             case COMPONENT_STATES.NAME_OR_ID:
               switch (this.#peek()) {
                 case 'n':
-                  if (this.#peek() === 'a' && this.#peek() === 'm' && this.#peek() === 'e' && this.#peek() === '=' && this.#peek() === '"') {
+                  if (this.#peek(5) === 'ame="') {
                     component_state = COMPONENT_STATES.NAME;
                     this.#take_all();
                     this.#buff.push(this.#empty());
                   } else {
+                    state = STATES.PLAIN;
                     this.#take_all();
                     this.#buff.push(this.#empty());
                     this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                    state = STATES.PLAIN;
                   }
                   break;
                 case 'i':
-                  if (this.#peek() === 'd' && this.#peek() === '=' && this.#peek() === '"') {
+                  if (this.#peek(3) === 'd="') {
                     component_state = COMPONENT_STATES.ID;
                     this.#take_all();
                     this.#buff.push(this.#empty());
                   } else {
+                    state = STATES.PLAIN;
                     this.#take_all();
                     this.#buff.push(this.#empty());
                     this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                    state = STATES.PLAIN;
                   }
                   break;
                 default:
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
               }
               break;
             case COMPONENT_STATES.NAME:
               if (component_name !== null) {
+                state = STATES.PLAIN;
                 this.#buff.push(this.#empty());
                 this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                state = STATES.PLAIN;
                 break;
               }
 
@@ -645,9 +645,9 @@ export class Lexer {
                 case '<':
                 case '>':
                 case '&':
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 case '/': // allow slash in name for components in subdir for components dir
                 default:
@@ -657,9 +657,9 @@ export class Lexer {
               break;
             case COMPONENT_STATES.ID:
               if (component_id !== null) {
+                state = STATES.PLAIN;
                 this.#buff.push(this.#empty());
                 this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                state = STATES.PLAIN;
                 break;
               }
 
@@ -688,9 +688,9 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 default:
                   this.#take();
@@ -700,12 +700,12 @@ export class Lexer {
             case COMPONENT_STATES.END_OR_INLINE_ARG:
               switch (this.#peek()) {
                 case '/': // end
+                  state = STATES.PLAIN;
                   if (this.#peek() === '>') {
                     this.#take_all();
                     this.#empty();
                     this.#flush();
                     this.#emit_token(state == STATES.SUB ? TOKEN_TYPES.SUB : TOKEN_TYPES.SUBS, { name: component_name, id: component_id, args: this.#args_buff.flush() });
-                    state = STATES.PLAIN;
                   } else {
                     this.#take();
                     this.#buff.push(this.#empty());
@@ -733,13 +733,13 @@ export class Lexer {
                 case '<':
                 case '>':
                 case '&':
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 default:
-                  this.#buff.push(this.#empty());
                   component_state = COMPONENT_STATES.INLINE_ARG_KEY;
+                  this.#buff.push(this.#empty());
                   break;
               }
               break;
@@ -751,8 +751,8 @@ export class Lexer {
                 case '\n':
                   const id = this.#empty();
                   if (id.length === 0) {
-                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     break;
                   }
                   this.#buff.push(id);
@@ -771,9 +771,9 @@ export class Lexer {
                 case '>':
                 case '/':
                 case '&':
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 default:
                   this.#take();
@@ -795,9 +795,9 @@ export class Lexer {
                 case '/':
                 case '>':
                 case '&':
+                  state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 case '=':
                   if (this.#peek() === '"') {
@@ -809,14 +809,14 @@ export class Lexer {
                     this.#buff.push('="');
 
                     if (key.length === 0) {
-                      this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                       state = STATES.PLAIN;
+                      this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     }
                   } else {
+                    state = STATES.PLAIN;
                     this.#take();
                     this.#buff.push(this.#empty());
                     this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                    state = STATES.PLAIN;
                   }
                   break;
                 default:
@@ -835,8 +835,8 @@ export class Lexer {
                   this.#buff.push('"');
 
                   if (!this.#args_buff.build()) {
-                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   }
                   break;
                 case '\\':
@@ -867,10 +867,10 @@ export class Lexer {
             case COMPONENT_STATES.INLINE_ARG_VAL_PROP:
               switch (this.#peek()) {
                 case '"':
+                  state = STATES.PLAIN;
                   this.#take_all();
                   this.#buff.push(this.#empty());
                   this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
-                  state = STATES.PLAIN;
                   break;
                 case '}':
                   component_state = COMPONENT_STATES.INLINE_ARG_VAL;
@@ -880,8 +880,8 @@ export class Lexer {
                   this.#skip();
                   this.#buff.push('}');
                   if (prop.length === 0) {
-                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                     state = STATES.PLAIN;
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   }
                   break;
                 default:
@@ -890,8 +890,8 @@ export class Lexer {
               }
               break;
             default:
-              ERR(`INVALID component_state: ${component_state}`);
               state = STATES.ERROR;
+              ERR(`INVALID component_state: ${component_state}`);
               break;
           }
           break;

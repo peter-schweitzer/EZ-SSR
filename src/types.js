@@ -12,7 +12,7 @@
 /** @typedef {{name: string, data: InlineArgData[]}} InlineArgs */
 
 /** @typedef {{type: 'literal', data: string}} LiteralLexerToken */
-/** @typedef {{type: 'attr', data: '$*'}} AttrLexerToken */
+/** @typedef {{type: 'attr', data: string }} AttrLexerToken */
 /** @typedef {{type: 'attrs', data: '$*'}} AttrsLexerToken */
 /** @typedef {{type: 'prop', data: {name: string, type: PropTypeStr}}} PropLexerToken */
 /** @typedef {{type: 'sub'|'subs', data: {name: string, id: string, args: InlineArgs[]}}} ComponentLexerToken */

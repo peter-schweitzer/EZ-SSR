@@ -1,4 +1,4 @@
-import { data, err, validate } from '@peter-schweitzer/ez-utils';
+import { data, err, LOG, validate } from '@peter-schweitzer/ez-utils';
 import { Lexer, TOKEN_TYPES } from './lexer.js';
 import { render_prop } from './utils.js';
 
@@ -38,12 +38,14 @@ export default class LexedComponent {
     this.#parts = lexer.lex(raw_str);
   }
 
+  // FIXME: remove DBG for final release
   /**
    * @param {LUT<any>} ext_props
    * @param {LUT<string>} rendered_inline_props_lut
+   * @param {boolean} [DBG=true]
    * @returns {ErrorOr<string>}
    */
-  render(ext_props, rendered_inline_props_lut = null, DBG = false) {
+  render(ext_props, rendered_inline_props_lut = null, DBG = true) {
     const props = Object.assign({}, ext_props);
     if (rendered_inline_props_lut !== null) Object.assign(props, rendered_inline_props_lut);
 
@@ -53,28 +55,23 @@ export default class LexedComponent {
     for (const { type: t, data: d } of this.#parts)
       switch (t) {
         case TOKEN_TYPES.LITERAL:
-          DBG && rendered_parts.push(`\x1b[${_DBG ? '34' : '36'};4m`);
-          _DBG = !_DBG;
           rendered_parts.push(d);
-          DBG && rendered_parts.push(`\x1b[0m`);
+          if (DBG) LOG(`\x1b[${(_DBG = !_DBG) ? '34' : '36'};4m${d}\x1b[0m`);
           break;
         case TOKEN_TYPES.ATTR:
-          DBG && rendered_parts.push('\x1b[35;1m');
           rendered_parts.push(`${d}="${render_prop(props[d])}"`);
-          DBG && rendered_parts.push('\x1b[0m');
+          if (DBG) LOG(`\x1b[35;1m${d}="${render_prop(props[d])}"\x1b[0m`);
           break;
         case TOKEN_TYPES.ATTRS:
-          DBG && rendered_parts.push('\x1b[31;1m');
           for (const prop in rendered_inline_props_lut) rendered_parts.push(` ${prop}="${props[prop]}"`);
-          DBG && rendered_parts.push('\x1b[0m');
+          if (DBG) for (const prop in rendered_inline_props_lut) LOG(`\x1b[31;1m ${prop}="${props[prop]}"\x1b[0m`);
           break;
         case TOKEN_TYPES.PROP:
           {
             const { name, type } = d;
             if (validate(props, { [name]: type })) {
-              DBG && rendered_parts.push('\x1b[33;1m');
               rendered_parts.push(props[name]);
-              DBG && rendered_parts.push('\x1b[0m');
+              if (DBG) LOG(`\x1b[33;1m${props[name]}\x1b[0m`);
             } else if (!Object.hasOwn(props, name)) return err(`prop '${name}' missing in props`);
             else return err(`prop '${name}' has invalid type, expecting '${type}'`);
           }
@@ -91,9 +88,9 @@ export default class LexedComponent {
 
             const { err: render_err, data: rendered_subcomponent } = this.#components_lut[name].render(sub_props, rendered_inline_sub_props, DBG);
             if (render_err !== null) return err(`error while rendering sub component:\n  ${render_err}`);
-            DBG && rendered_parts.push('\x1b[32;1m');
+
             rendered_parts.push(rendered_subcomponent);
-            DBG && rendered_parts.push('\x1b[0m');
+            if (DBG) LOG(`\x1b[32;1m${rendered_subcomponent}\x1b[0m`);
           }
           break;
         case TOKEN_TYPES.SUBS:
@@ -109,9 +106,8 @@ export default class LexedComponent {
 
             const { err: render_err, data: rendered_subcomponent } = this.#components_lut[name].render(sub_props, rendered_inline_sub_props, DBG);
             if (render_err !== null) return err(`error while rendering sub component:\n  ${render_err}`);
-            DBG && rendered_parts.push('\x1b[32;1m');
             rendered_parts.push(rendered_subcomponent);
-            DBG && rendered_parts.push('\x1b[0m');
+            if (DBG) LOG(`\x1b[32;1m${rendered_subcomponent}\x1b[0m`);
           }
           break;
       }
