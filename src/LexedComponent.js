@@ -94,20 +94,28 @@ export default class LexedComponent {
           }
           break;
         case TOKEN_TYPES.SUBS:
-          const { name, id, args } = d;
-          if (!Object.hasOwn(this.#components_lut, name)) return err(`unknown component '${name}'`);
-          if (!Object.hasOwn(props, id)) return err(`sub props missing for for-component '${id}' ('${name}')`);
-          if (!Array.isArray(props[id])) return err(`sub props type should be array but isn't (id: '${id}' name: '${name}')`);
+          {
+            const { name, id, args } = d;
+            if (!Object.hasOwn(this.#components_lut, name)) return err(`unknown component '${name}'`);
 
-          for (let i = 0; i < props[id].length; i++) {
-            const sub_props = Object.assign({}, props[id][i]);
+            if (!Object.hasOwn(props, id)) return err(`sub props missing for for-component '${id}' ('${name}')`); // TODO: might be better to not render the component if no props are supplied instead of erroring
+
+            const sub_prop_arr = props[id];
+            if (!Array.isArray(sub_prop_arr)) return err(`sub props type should be array but isn't (id: '${id}' name: '${name}')`);
+
             const { err: inline_render_error, data: rendered_inline_sub_props } = render_inline_props(props, args);
             if (inline_render_error !== null) return err('error while rendering inline props:\n  ' + inline_render_error);
 
-            const { err: render_err, data: rendered_subcomponent } = this.#components_lut[name].render(sub_props, rendered_inline_sub_props, DBG);
-            if (render_err !== null) return err(`error while rendering sub component:\n  ${render_err}`);
-            rendered_parts.push(rendered_subcomponent);
-            if (DBG) LOG(`\x1b[32;1m${rendered_subcomponent}\x1b[0m`);
+            for (let i = 0; i < sub_prop_arr.length; i++) {
+              const sub_props = Object.assign({}, sub_prop_arr[i]);
+
+              if (!Object.hasOwn(sub_props, 'i')) sub_props.i = i;
+
+              const { err: render_err, data: rendered_subcomponent } = this.#components_lut[name].render(sub_props, rendered_inline_sub_props, DBG);
+              if (render_err !== null) return err(`error while rendering sub component:\n  ${render_err}`);
+              rendered_parts.push(rendered_subcomponent);
+              if (DBG) LOG(`\x1b[32;1m${rendered_subcomponent}\x1b[0m`);
+            }
           }
           break;
       }

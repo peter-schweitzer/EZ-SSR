@@ -700,17 +700,18 @@ export class Lexer {
             case COMPONENT_STATES.END_OR_INLINE_ARG:
               switch (this.#peek()) {
                 case '/': // end
-                  state = STATES.PLAIN;
                   if (this.#peek() === '>') {
                     this.#take_all();
                     this.#empty();
                     this.#flush();
-                    this.#emit_token(state == STATES.SUB ? TOKEN_TYPES.SUB : TOKEN_TYPES.SUBS, { name: component_name, id: component_id, args: this.#args_buff.flush() });
+                    const args = this.#args_buff.flush();
+                    this.#emit_token(state === STATES.SUB ? TOKEN_TYPES.SUB : TOKEN_TYPES.SUBS, { name: component_name, id: component_id, args });
                   } else {
                     this.#take();
                     this.#buff.push(this.#empty());
                     this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   }
+                  state = STATES.PLAIN; // state is used when emiting sub(s) token
                   break;
                 case ' ':
                 case '\t':
