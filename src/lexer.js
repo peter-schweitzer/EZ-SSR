@@ -750,10 +750,18 @@ export class Lexer {
               break;
             case COMPONENT_STATES.INLINE_ARG_RELAY:
               switch (this.#peek()) {
+                case '/':
+                  if (this.#peek() !== '>') {
+                    state = STATES.PLAIN;
+                    this.#take();
+                    this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
+                    break;
+                  }
                 case ' ':
                 case '\t':
                 case '\r':
                 case '\n':
+                  component_state = COMPONENT_STATES.END_OR_INLINE_ARG;
                   const id = this.#empty();
                   if (id.length === 0) {
                     state = STATES.PLAIN;
@@ -774,7 +782,7 @@ export class Lexer {
                 case '}':
                 case '<':
                 case '>':
-                case '/':
+                case '\\':
                 case '&':
                   state = STATES.PLAIN;
                   this.#buff.push(this.#empty());
