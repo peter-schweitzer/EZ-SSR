@@ -1,28 +1,20 @@
 import { err } from '@peter-schweitzer/ez-utils';
 
-import { Component } from './Component.js';
 import LexedComponent from './LexedComponent.js';
-import { add_components, add_lexed_components } from './utils.js';
+import { add_lexed_components } from './utils.js';
 
 export class SSR {
-  /**@type {LUT<Component>|LUT<LexedComponent>} */
+  /**@type {LUT<LexedComponent>} */
   #components = {};
   /** @type {string} */
   #component_pth;
-  /** @type {boolean} */
-  #use_lexer;
 
   /** @param {string?} [componentDirPath="./components"] relative path to the directory containing the component HTML-files (won't parse components when set to null) */
-  constructor(componentDirPath = null, use_lexer = false) {
+  constructor(componentDirPath = null) {
     if (componentDirPath === null) componentDirPath = './components';
-
     this.#component_pth = componentDirPath;
-    this.#use_lexer = use_lexer;
 
-    // @ts-ignore ts(2345)
-    if (use_lexer) add_lexed_components(this.#components, componentDirPath);
-    // @ts-ignore ts(2345)
-    else add_components(this.#components, componentDirPath);
+    add_lexed_components(this.#components, componentDirPath);
   }
 
   /**
@@ -38,9 +30,6 @@ export class SSR {
 
   reloadComponents() {
     this.#components = {};
-    // @ts-ignore ts(2345)
-    if (this.#use_lexer) add_lexed_components(this.#components, this.#component_pth);
-    // @ts-ignore ts(2345)
-    else add_components(this.#components, this.#component_pth);
+    add_lexed_components(this.#components, this.#component_pth);
   }
 }
