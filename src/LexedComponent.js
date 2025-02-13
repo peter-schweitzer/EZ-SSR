@@ -1,28 +1,6 @@
 import { data, err, LOG, validate } from '@peter-schweitzer/ez-utils';
 import { Lexer, TOKEN_TYPES } from './lexer.js';
-import { render_prop } from './utils.js';
-
-/**
- * @param {LUT<any>} props
- * @param {InlineArgs[]} args
- * @returns {ErrorOr<LUT<string>>}
- */
-function render_inline_props(props, args) {
-  /** @type {LUT<string>} */
-  const rendered_inline_props = {};
-  for (const { name, data: args_data } of args)
-    if (name === '$*') props;
-    else {
-      const prop_parts = [];
-      for (const { type, val } of args_data)
-        if (type === 'str') prop_parts.push(val);
-        else if (!Object.hasOwn(props, val)) return err(`can't render '${name}', prop '${val}' is missing`);
-        else prop_parts.push(render_prop(props[val]));
-
-      rendered_inline_props[name] = prop_parts.join('');
-    }
-  return data(rendered_inline_props);
-}
+import { render_inline_props, render_prop } from './utils.js';
 
 export default class LexedComponent {
   #components_lut;

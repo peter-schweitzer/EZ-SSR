@@ -12,6 +12,28 @@ export function render_prop(prop) {
 }
 
 /**
+ * @param {LUT<any>} props
+ * @param {InlineArgs[]} args
+ * @returns {ErrorOr<LUT<string>>}
+ */
+export function render_inline_props(props, args) {
+  /** @type {LUT<string>} */
+  const rendered_inline_props = {};
+  for (const { name, data: args_data } of args)
+    if (name === '$*') for (const prop in props) rendered_inline_props[prop] = render_prop(prop);
+    else {
+      const prop_parts = [];
+      for (const { type, val } of args_data)
+        if (type === 'str') prop_parts.push(val);
+        else if (!Object.hasOwn(props, val)) return err(`can't render '${name}', prop '${val}' is missing`);
+        else prop_parts.push(render_prop(props[val]));
+
+      rendered_inline_props[name] = prop_parts.join('');
+    }
+  return data(rendered_inline_props);
+}
+
+/**
  * @param {LUT<Component>} components_ref
  * @param {SegmentItem} dep
  * @param {LUT<any>} ext_props
