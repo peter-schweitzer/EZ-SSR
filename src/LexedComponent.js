@@ -45,7 +45,9 @@ export default class LexedComponent {
           break;
         case TOKEN_TYPES.ATTRS:
           {
-            for (const prop in rendered_inline_props_lut) rendered_parts.push(` ${prop}="${props[prop]}"`);
+            const attrs_parts = [];
+            for (const prop in rendered_inline_props_lut) attrs_parts.push(`${prop}="${render_prop(props[prop])}"`);
+            rendered_parts.push(attrs_parts.join(' '));
             if (DBG) for (const prop in rendered_inline_props_lut) LOG(`\x1b[31;1m ${prop}="${props[prop]}"\x1b[0m`);
           }
           break;
@@ -53,7 +55,7 @@ export default class LexedComponent {
           {
             const { name, type } = d;
             if (validate(props, { [name]: type })) {
-              rendered_parts.push(props[name]);
+              rendered_parts.push(render_prop(props[name]));
               if (DBG) LOG(`\x1b[33;1m${props[name]}\x1b[0m`);
             } else if (!Object.hasOwn(props, name)) return err(`prop '${name}' missing in props`);
             else return err(`prop '${name}' has invalid type, expecting '${type}'`);
