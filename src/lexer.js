@@ -711,7 +711,7 @@ export class Lexer {
                     this.#buff.push(this.#empty());
                     this.#emit_token(TOKEN_TYPES.LITERAL, this.#flush());
                   }
-                  state = STATES.PLAIN; // state is used when emiting sub(s) token
+                  state = STATES.PLAIN; // state is used when emitting sub(s) token
                   break;
                 case ' ':
                 case '\t':

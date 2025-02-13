@@ -6,6 +6,10 @@ import { Component } from './Component.js';
 import LexedComponent from './LexedComponent.js';
 import { Lexer } from './lexer.js';
 
+/**
+ * @param {any} prop
+ * @returns {string}
+ */
 export function render_prop(prop) {
   if (typeof prop === 'object') return JSON.stringify(prop);
   else return `${prop}`;
